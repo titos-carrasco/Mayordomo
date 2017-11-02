@@ -1,4 +1,6 @@
-# Mayordomo
+Mayordomo
+=========
+
 Entorno de microcontroladores/software conectados a través de MQTT y controlados a través de una aplicación desarrollada en Python (**Mayordomo.py**).
 
 Adicionalmente se agrega una app en Android que convierte Voz a Texto y lo envía a Mayordomo a través de MQTT, simplificando así el interactuar con todo el entorno.
