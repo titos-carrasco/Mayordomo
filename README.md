@@ -54,6 +54,7 @@ Palabras: mqtt, mosquitto, NodeMCU, Arduino, Android, Jackd, DBUS, Audacious, dr
         Depende del software utilizado. En mi caso Gufw y su interfaz gráfica
 2. Activar Mosquitto
         $ systemctl start mosquitto.service
+        $ mosquitto_sub -h x.x.x.x -v -t 'rcr/#'
 3. Conectar PulseAudio a Jackd
         $ pacmd load-module module-jack-sink
         $ pacmd set-default-sink jack_out

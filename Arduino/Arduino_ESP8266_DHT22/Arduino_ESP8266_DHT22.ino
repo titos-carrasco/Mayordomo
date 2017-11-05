@@ -4,12 +4,12 @@
 
 #define WIFI_RX_PIN     2
 #define WIFI_TX_PIN     3
-#define WIFI_SSID       "SSID"
-#define WIFI_CLAVE      "CLAVE"
+#define WIFI_SSID       "Tito's Demos"
+#define WIFI_CLAVE      "santotomas"
 
 #define DHT22_PIN       5
 
-#define MQTT_SERVER     "test.mosquitto.org"
+#define MQTT_SERVER     "192.168.222.100"
 #define MQTT_PORT       1883
 #define MQTT_CLIENTID   "ArduinoNano1234567890"
 #define MQTT_TOPIC      "rcr/DHT22"
