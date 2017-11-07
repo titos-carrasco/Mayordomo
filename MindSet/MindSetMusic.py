@@ -34,11 +34,12 @@ def mqtt_on_connect( client, arg1, arg2, arg3 ):
     global MINDSET_TOPIC, MQTT_SERVER
 
     client.subscribe( MINDSET_TOPIC )
-    print( "MindSetMusic: esperando en %s - %s" % ( MQTT_SERVER, MINDSET_TOPIC ) )
+    print( "[MindSetMusic] Esperando en %s - %s" % ( MQTT_SERVER, MINDSET_TOPIC ) )
 
 def main():
     global mqtt_client, MQTT_SERVER, messages
 
+    print( '[MindSetMusic] Iniciando aplicación' )
     midiOut = rtmidi.MidiOut()
     midiOut.open_virtual_port("MindSetMusic Port")
 
@@ -53,12 +54,11 @@ def main():
             message = messages.get()
             if( message.payload == 'exit' ):
                 abort = True
-                break
+                continue
             msg = json.loads( message.payload )
             nota1 = msg["attentionESense"]*127.0/100.0
             nota2 = msg["meditationESense"]*127.0/100.0
             #print( "MindSetMusic Notes:", nota1, nota2 )
-
             midiOut.send_message( [ 0x90, nota1, 127 ] )  # on channel 0, nota, velocidad
             midiOut.send_message( [ 0x91, nota2, 127 ] )  # on channel 1, nota, velocidad
             time.sleep( 0.5 + random.random()*2 )
@@ -67,7 +67,9 @@ def main():
 
         except Exception as e:
             print( e )
+
     mqtt_client.loop_stop()
+    print( '[MindSetMusic] Aplicación finalizada' )
 
 #--
 main()

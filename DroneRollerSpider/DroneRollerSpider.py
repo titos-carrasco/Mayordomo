@@ -64,21 +64,28 @@ def mqtt_on_connect( client, arg1, arg2, arg3 ):
     global DRONE_TOPIC, MQTT_SERVER
 
     client.subscribe( DRONE_TOPIC )
-    print( "DroneRollerSpider: esperando en %s - %s" % ( MQTT_SERVER, DRONE_TOPIC ) )
+    print( "[DroneRollerSpider] Esperando en %s - %s" % ( MQTT_SERVER, DRONE_TOPIC ) )
 
 def main():
     global mqtt_client, MQTT_SERVER, messages, mutex
 
-    drone = minidrone.MiniDrone( mac=DRONEMAC, callback=refresh_data )
-
+    print( '[DroneRollerSpider] Iniciando aplicación' )
     mqtt_client = paho.Client( 'DroneRollerSpider-' + uuid.uuid4().hex )
     mqtt_client.on_connect = mqtt_on_connect
     mqtt_client.on_message = mqtt_on_message
     mqtt_client.connect( MQTT_SERVER, 1883 )
     mqtt_client.loop_start()
-    while( True ):
+    drone = None
+    abort = False
+    try:
+        drone = minidrone.MiniDrone( mac=DRONEMAC, callback=refresh_data )
+        sendToSpeak( 'Control del drone iniciado' )
+    except Exception as e:
+        sendToSpeak( '  No existe puerto de comunicaciones con el drone' )
+        abort = True
+    while( not abort ):
         message = messages.get()
-        print( "Mensaje recibido:", message.payload )
+        print( "[DroneRollerSpider] Mensaje recibido:", message.payload )
 
         mutex.acquire()
         isConnected = connected
@@ -116,7 +123,10 @@ def main():
                 drone.move_fw()
             elif( message.payload == 'move_bw' ):
                 drone.move_bw()
+
+    sendToSpeak( 'Control del drone finalizado' )
     mqtt_client.loop_stop()
+    print( '[DroneRollerSpider] Finalizando aplicación' )
 
 #--
 main()

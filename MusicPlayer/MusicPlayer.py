@@ -92,21 +92,26 @@ def mqtt_on_connect( client, arg1, arg2, arg3 ):
     global PLAYER_TOPIC, MQTT_SERVER
 
     client.subscribe( PLAYER_TOPIC )
-    print( "MusicPlayer: esperando en %s - %s" % ( MQTT_SERVER, PLAYER_TOPIC ) )
+    print( "[MusicPlayer] Esperando en %s - %s" % ( MQTT_SERVER, PLAYER_TOPIC ) )
 
 def main():
     global mqtt_client, MQTT_SERVER, messages
 
+    print( '[MusicPlayer] Iniciando aplicación' )
     player = Audacious()
     mqtt_client = paho.Client( 'MusicPlayer-' + uuid.uuid4().hex )
     mqtt_client.on_connect = mqtt_on_connect
     mqtt_client.on_message = mqtt_on_message
     mqtt_client.connect( MQTT_SERVER, 1883 )
     mqtt_client.loop_start()
-    while( True ):
+    abort = False
+    while( not abort ):
         message = messages.get()
-        print( "Mensaje recibido:", message.payload )
-        if( message.payload == 'play' ):
+        print( "[MusicPlayer] Mensaje recibido:", message.payload )
+
+        if( message.payload == 'exit' ):
+            abort = True
+        elif( message.payload == 'play' ):
             player.play()
         elif( message.payload == 'pause' ):
             player.pause()
@@ -118,9 +123,9 @@ def main():
             player.previous()
         elif( message.payload == 'songtitle' ):
             player.songTitle()
-        elif( message.payload == 'exit' ):
-            break
+
     mqtt_client.loop_stop()
+    print( '[MusicPlayer] Aplicación finalizada' )
 
 #--
 main()

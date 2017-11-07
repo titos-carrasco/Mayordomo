@@ -34,11 +34,12 @@ def mqtt_on_connect( client, arg1, arg2, arg3 ):
     global MINDSET_TOPIC, MQTT_SERVER
 
     client.subscribe( MINDSET_TOPIC )
-    print( "MinSetGraphics: esperando en %s - %s" % ( MQTT_SERVER, MINDSET_TOPIC ) )
+    print( "[MinSetGraphics] Esperando en %s - %s" % ( MQTT_SERVER, MINDSET_TOPIC ) )
 
 def main():
     global mqtt_client, MQTT_SERVER, messages
 
+    print( '[MinSetGraphics] Iniciando aplicación' )
     attentionESense = [0]*64
     meditationESense = [0]*64
     rawWave16Bit = [0]*64
@@ -76,10 +77,18 @@ def main():
     abort = False
     while( not abort ):
         try:
+            liAtt.set_ydata( attentionESense )
+            liMed.set_ydata( meditationESense )
+            liRaw.set_ydata( rawWave16Bit )
+
+            time.sleep( 0 )
+            fig.canvas.draw()
+            time.sleep( 0 )
+
             message = messages.get()
             if( message.payload == 'exit' ):
                 abort = True
-                break
+                continue
             msg = json.loads( message.payload )
 
             attentionESense.pop( 0 )
@@ -89,16 +98,11 @@ def main():
             rawWave16Bit.pop( 0 )
             rawWave16Bit.append( msg["rawWave16Bit"] );
 
-            liAtt.set_ydata( attentionESense )
-            liMed.set_ydata( meditationESense )
-            liRaw.set_ydata( rawWave16Bit )
-
-            time.sleep( 0 )
-            fig.canvas.draw()
-            time.sleep( 0 )
         except Exception as e:
             pass
+
     mqtt_client.loop_stop()
+    print( '[MinSetGraphics] Aplicación finalizada' )
 
 #--
 main()

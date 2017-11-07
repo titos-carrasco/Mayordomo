@@ -18,6 +18,8 @@ DRONE_TOPIC = 'rcr/RollerSpider'
 DHT22_TOPIC = 'rcr/DHT22'
 MINDSET_TOPIC  = 'rcr/MindSet'
 MAX7219_TOPIC = 'rcr/Max7219'
+NOISE_TOPIC = 'rcr/Ruido'
+S2_TOPIC  = 'rcr/S2'
 
 messages = Queue.Queue( 1 )
 data_dht22 = None
@@ -47,6 +49,16 @@ def sendToMax7219( msg ):
 
     mqtt_client.publish( MAX7219_TOPIC, msg )
 
+def sendToNoise( msg ):
+    global mqtt_client, NOISE_TOPIC
+
+    mqtt_client.publish( NOISE_TOPIC, msg )
+
+def sendToS2( msg ):
+    global mqtt_client,S2_TOPIC
+
+    mqtt_client.publish( S2_TOPIC, msg )
+
 def mqtt_on_message( client, userdata, message ):
     global messages, data_dht22
 
@@ -73,17 +85,25 @@ def mqtt_on_connect( client, arg1, arg2, arg3 ):
 
     client.subscribe( MAYORDOMO_TOPIC )
     client.subscribe( DHT22_TOPIC )
-    print( "Mayordomo: esperando en %s - %s" % ( MQTT_SERVER, MAYORDOMO_TOPIC ) )
+    print( "[Mayordomo] Esperando en %s - %s" % ( MQTT_SERVER, MAYORDOMO_TOPIC ) )
 
 def main():
     global mqtt_client, MQTT_SERVER, messages, data_dht22
+
+    print( '[Mayordomo] Iniciando sistema' )
+    subprocess.Popen( '/bin/sh ./Speak.sh', shell=True )
+    subprocess.Popen( '/usr/bin/python ./MusicPlayer/MusicPlayer.py', shell=True )
 
     mqtt_client = paho.Client( 'Mayordomo-' + uuid.uuid4().hex )
     mqtt_client.on_connect = mqtt_on_connect
     mqtt_client.on_message = mqtt_on_message
     mqtt_client.connect( MQTT_SERVER, 1883 )
     mqtt_client.loop_start()
-    while( True ):
+    time.sleep( 2 )
+    sendToSpeak( '     ' )
+    sendToSpeak( '    Sistema inicializado' )
+    abort = False
+    while( not abort ):
         message = messages.get()
 
         # hacemos el manejo del payload que viene en utf-8 (se supone)
@@ -91,21 +111,36 @@ def main():
         # y llevar todo a minuscula
         cmd = message.payload.decode('utf-8').lower()
         cmd = ''.join((c for c in unicodedata.normalize('NFD', cmd) if unicodedata.category(c) != 'Mn'))
-        print( "Mensaje recibido:", message.payload, "=>", cmd )
+        cmd = cmd.replace( 'mary', 'mari' )
+        cmd = cmd.replace( 'detener', 'deten' )
+        cmd = cmd.replace( 'tocar', 'toca' )
+        cmd = cmd.replace( 'pausar', 'pausa' )
+        cmd = cmd.replace( 'iniciar', 'inicia' )
+        cmd = cmd.replace( 'finalizar', 'finaliza' )
+        cmd = cmd.replace( 'mostrar', 'muestra' )
+        cmd = cmd.replace( 'robots', 'robot' )
+        cmd = cmd.replace( 'conectar', 'conecta' )
+        cmd = cmd.replace( 'desconectar', 'desconecta' )
+        print( "[Mayordomo] Mensaje recibido:", message.payload, "<<" + cmd + ">>" )
 
         # locales
-        if( cmd == 'mari' ):
+        if( cmd == 'finaliza sistema' ):
+            abort = True
+        elif( cmd == 'mari' ):
             sendToSpeak( 'Dime Padre' )
         elif( cmd == 'que hora es' ):
             now = time.localtime()
             sendToSpeak( 'son las %d horas con %d minutos' % (now.tm_hour, now.tm_min) )
+        elif( cmd == 'conversemos' ):
+            now = time.localtime()
+            sendToSpeak( 'de que deseas conversar?' )
 
         # MusicPlayer
         elif( cmd == 'toca musica' ):
             sendToMusicPlayer( 'play' )
         elif( cmd == 'deten musica' ):
             sendToMusicPlayer( 'stop' )
-        elif( cmd == 'pausar musica' ):
+        elif( cmd == 'pausa musica' ):
             sendToMusicPlayer( 'pause' )
         elif( cmd == 'tema siguiente' ):
             sendToMusicPlayer( 'next' )
@@ -115,50 +150,82 @@ def main():
             sendToMusicPlayer( 'songtitle' )
 
         # DroneRollerSpider
-        elif( cmd == 'conectar spider' ):
+        elif( cmd == 'inicia spider' ):
+            subprocess.Popen( '/usr/bin/python ./DroneRollerSpider/DroneRollerSpider.py', shell=True )
+        elif( cmd == 'finaliza spider' ):
+            sendToDrone( 'exit' )
+        elif( cmd == 'conecta spider' ):
             sendToDrone( 'connect' )
-        elif( cmd == 'desconectar spider' or cmd =='desconectar spyder' ):
+        elif( cmd == 'desconecta spider' or cmd =='desconectar spyder' ):
             sendToDrone( 'disconnect' )
-        elif( cmd == 'subir spider' ):
+        elif( cmd == 'sube spider' ):
             sendToDrone( 'takeoff' )
-        elif( cmd == 'bajar spider' ):
+        elif( cmd == 'baja spider' ):
             sendToDrone( 'land' )
-        elif( cmd == 'girar spider' ):
+        elif( cmd == 'gira spider' ):
             for i in range( 10 ):
                 sendToDrone( 'turn_left' )
                 time.sleep( 0.100 )
 
         # MindSet
-        elif( cmd == 'ejecuta mindset' ):
+        elif( cmd == 'inicia sensor neuronal' ):
             subprocess.Popen( '/usr/bin/python ./MindSet/MindSetPub.py', shell=True )
             subprocess.Popen( '/usr/bin/python ./MindSet/MindSetGraphics.py', shell=True )
             subprocess.Popen( '/usr/bin/python ./MindSet/MindSetMusic.py', shell=True )
-        elif( cmd == 'finaliza mindset' ):
+        elif( cmd == 'finaliza sensor neuronal' ):
             sendToMindSet( 'exit' )
 
         # DHT22
-        elif( cmd == 'temperatura y humedad' ):
+        elif( cmd == 'temperatura' ):
             if( data_dht22 == None ):
-                sendToSpeak( 'No tengo datos de temperatura y humedad' )
+                sendToSpeak( 'No tengo datos de temperatura' )
             else:
                 d = data_dht22
                 d = json.loads( d )
-                sendToSpeak( 'La Temperatura es de %3.1f grados y la humedad es de un %3.1f por ciento' % ( d["temperatura"], d["humedad"] ) )
+                sendToSpeak( 'La Temperatura es de %3.1f grados' % ( d["temperatura"] ) )
+        elif( cmd == 'humedad' ):
+            if( data_dht22 == None ):
+                sendToSpeak( 'No tengo datos de humedad' )
+            else:
+                d = data_dht22
+                d = json.loads( d )
+                sendToSpeak( 'La humedad es de un %3.1f por ciento' % ( d["humedad"] ) )
 
         # Max72129
-        elif( message.payload.startswith( 'muestra ' )  and len( message.payload ) == 9 ):
+        elif( cmd.startswith( 'muestra ' )  and len( cmd ) == 9 ):
             try:
-                digit = int( message.payload[8] )
+                digit = int( cmd[8] )
                 sendToSpeak( "Mostrando un %d en la matriz" % digit )
                 sendToMax7219( str( digit ) )
             except Exception as e:
                 pass
 
-        # salida
-        elif( message.payload == 'exit' ):
-            sendToMindSet( 'exit' )
-            break
+        # Sensor de ruido
+        elif( cmd == 'inicia analisis de ruido' ):
+            subprocess.Popen( '/usr/bin/python ./Noise/NoiseGraphics.py', shell=True )
+        elif( cmd == 'finaliza analisis de ruido' ):
+            sendToNoise( 'exit' )
+
+        # robot S2
+        elif( cmd == 'inicia control de robot' ):
+            subprocess.Popen( '/usr/bin/python ./S2/S2.py', shell=True )
+        elif( cmd == 'nombre de robot' ):
+            sendToS2( 'name' )
+        elif( cmd == 'robot izquierda' ):
+            sendToS2( 'left 1' )
+        elif( cmd == 'robot derecha' ):
+            sendToS2( 'right 1' )
+        elif( cmd == 'robot avanza' ):
+            sendToS2( 'forward 5' )
+        elif( cmd == 'robot retrocede' ):
+            sendToS2( 'backward 5' )
+        elif( cmd == 'finaliza control de robot' ):
+            sendToS2( 'exit' )
+
+    sendToSpeak( 'Sistema finalizado' )
+    time.sleep( 2 )
     mqtt_client.loop_stop()
+    print( '[Mayordomo] Sistema finalizado' )
 
 #--
 main()
