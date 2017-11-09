@@ -76,7 +76,7 @@ def main():
             if( message.payload == 'exit' ):
                 abort = True
                 continue
-            data = int( message.payload )
+            data = int( message.payload ) * 20
 
             noise.pop( 0 )
             noise.append( data );
