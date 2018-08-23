@@ -1,8 +1,0 @@
-<resources>
-    <string name="app_name">VoiceAndMQTT</string>
-    <string name="TapMicrofono">Tap sobre el Micrófono</string>
-    <string name="DefaultServer">test.mosquitto.org:1883</string>
-    <string name="DefaultTopic">rcr/</string>
-    <string name="Server">Servidor:Puerta</string>
-    <string name="Topico">Tópico</string>
-</resources>
